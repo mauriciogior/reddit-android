@@ -1,0 +1,47 @@
+#
+# generated on 2014/05/10 08:54:28
+#
+# --table-start--
+dataClass=com.mauriciogiordano.reddit.database.User
+tableName=user
+# --table-fields-start--
+# --field-start--
+fieldName=memberID
+id=true
+# --field-end--
+# --field-start--
+fieldName=name
+# --field-end--
+# --field-start--
+fieldName=role
+# --field-end--
+# --field-start--
+fieldName=company
+# --field-end--
+# --field-start--
+fieldName=image
+# --field-end--
+# --field-start--
+fieldName=telephone
+# --field-end--
+# --field-start--
+fieldName=city
+# --field-end--
+# --field-start--
+fieldName=email
+# --field-end--
+# --field-start--
+fieldName=facebookID
+# --field-end--
+# --field-start--
+fieldName=linkedInID
+# --field-end--
+# --field-start--
+fieldName=tokenID
+# --field-end--
+# --field-start--
+fieldName=cover
+# --field-end--
+# --table-fields-end--
+# --table-end--
+#################################
