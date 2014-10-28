@@ -1,7 +1,6 @@
 package com.mauriciogiordano.reddit.database;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.mauriciogiordano.reddit.network.Delegate;
@@ -121,16 +120,16 @@ public class User extends Bean
      * @param password The password.
      * @param onLoginListener The callback.
      */
-    public static void signIn(String username, String password, final OnLoginListener onLoginListener)
+    public static void signIn(String username, String password, final Context context, final OnLoginListener onLoginListener)
     {
-        HttpClientHelper client = new HttpClientHelper(Endpoints.User.login);
+        HttpClientHelper client = new HttpClientHelper(Endpoints.User.login, context);
 
         client.addParamForPost("api_type", "json");
         client.addParamForPost("user", username);
         client.addParamForPost("passwd", password);
         client.addParamForPost("rem", String.valueOf(true));
 
-        Network.newRequest(client, Network.POST, new Delegate()
+        Network.newRequest(client, Network.POST, Network.WITHOUT_COOKIE, new Delegate()
         {
             @Override
             public void requestResults(Network.Status status)
@@ -143,9 +142,20 @@ public class User extends Bean
                     if(status.response.getStatusLine().getStatusCode() == 200
                     || status.response.getStatusLine().getStatusCode() == 409)
                     {
-                        Log.d("", status.result.toString());
+                        try
+                        {
+                            JSONObject values = (JSONObject) ((JSONObject) status.result.get("json")).get("data");
+                            String cookie = values.getString("cookie");
 
-                        getMe(onLoginListener);
+                            status.httpClientHelper.setCookie(cookie, context);
+
+                            getMe(context, onLoginListener);
+                        }
+                        catch (JSONException e)
+                        {
+                            err = true;
+                            onLoginListener.onLogin(user, status, err);
+                        }
                     }
                     else
                     {
@@ -165,11 +175,11 @@ public class User extends Bean
      * Retrieves the current user in session.
      * @param onLoginListener The callback.
      */
-    public static void getMe(final OnLoginListener onLoginListener)
+    public static void getMe(final Context context, final OnLoginListener onLoginListener)
     {
-        HttpClientHelper client = new HttpClientHelper(Endpoints.User.me);
+        HttpClientHelper client = new HttpClientHelper(Endpoints.User.me, context);
 
-        Network.newRequest(client, Network.GET, new Delegate()
+        Network.newRequest(client, Network.GET, Network.WITH_COOKIE, new Delegate()
         {
             @Override
             public void requestResults(Network.Status status)
@@ -183,7 +193,6 @@ public class User extends Bean
                     {
                         try
                         {
-                            Log.d("", status.result.toString());
                             user = new User(status.result.getJSONObject("data"));
                         }
                         catch (JSONException e)

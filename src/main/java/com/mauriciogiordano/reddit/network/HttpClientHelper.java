@@ -1,22 +1,20 @@
 package com.mauriciogiordano.reddit.network;
 
+import android.app.Activity;
+import android.content.Context;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CookieStore;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.client.utils.URLEncodedUtils;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HTTP;
-import org.apache.http.protocol.HttpContext;
 
 import java.io.IOException;
 import java.net.URI;
@@ -26,7 +24,6 @@ import java.util.List;
 
 public class HttpClientHelper
 {
-
     public static final Integer PORT 	= 80;
     public static final String METHOD	= "http";
 
@@ -35,13 +32,13 @@ public class HttpClientHelper
     private String path = "";
 
     private static DefaultHttpClient httpClient = null;
-    private static CookieStore cookieStore;
-    private static HttpContext localContext;
+
+    private static String cookie = null;
 
     private List<NameValuePair> dataPost = new ArrayList<NameValuePair>();
     private List<NameValuePair> dataGet  = new ArrayList<NameValuePair>();
 
-    public HttpClientHelper(String path)
+    public HttpClientHelper(String path, Context context)
     {
         this.url = Network.HOST;
         this.path = path;
@@ -49,27 +46,12 @@ public class HttpClientHelper
         if(httpClient == null)
         {
             httpClient = new DefaultHttpClient();
-            cookieStore = new BasicCookieStore();
-            localContext = new BasicHttpContext();
 
-            localContext.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
+            cookie = context
+                        .getSharedPreferences(
+                            this.getClass().getPackage().getName(), Activity.MODE_PRIVATE)
+                        .getString(".cookie", null);
         }
-    }
-
-    public DefaultHttpClient getHttpClient()
-    {
-        return httpClient;
-    }
-
-    public CookieStore getCookieStore()
-    {
-        return cookieStore;
-    }
-
-    public void addParam(String key, String value)
-    {
-        dataPost.add(new BasicNameValuePair(key, value));
-        dataGet.add(new BasicNameValuePair(key, value));
     }
 
     public void addParamForGet(String key, String value)
@@ -82,7 +64,7 @@ public class HttpClientHelper
         dataPost.add(new BasicNameValuePair(key, value));
     }
 
-    public HttpResponse executePost()
+    public HttpResponse executePost(boolean withCookie)
     {
         HttpResponse response = null;
 
@@ -91,11 +73,17 @@ public class HttpClientHelper
                     dataGet == null ? null : URLEncodedUtils.format(dataGet, "UTF-8"), null);
 
             HttpPost httpPost = new HttpPost(uri);
-            httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            if(cookie != null && withCookie)
+            {
+                httpPost.addHeader("cookie", "reddit_session=" + cookie);
+            }
+
+            httpPost.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
             httpPost.setEntity(new UrlEncodedFormEntity(dataPost, HTTP.UTF_8));
 
-            response = httpClient.execute(httpPost, localContext);
+            response = httpClient.execute(httpPost);
 
         } catch (ClientProtocolException e) {
             // TODO Auto-generated catch block
@@ -111,19 +99,7 @@ public class HttpClientHelper
         return response;
     }
 
-    public void setCookies(List<Cookie> cookies)
-    {
-        CookieStore cs = httpClient.getCookieStore();
-
-        for(int i = 0; i < cookies.size(); i++)
-        {
-            cs.addCookie(cookies.get(i));
-        }
-
-        httpClient.setCookieStore(cs);
-    }
-
-    public HttpResponse executeGet()
+    public HttpResponse executeGet(boolean withCookie)
     {
         try {
             uri = URIUtils.createURI(METHOD, url, PORT, path,
@@ -134,10 +110,16 @@ public class HttpClientHelper
         }
 
         HttpGet httpget = new HttpGet(uri);
+
+        if(cookie != null && withCookie)
+        {
+            httpget.addHeader(new BasicHeader("cookie", "reddit_session=" + cookie));
+        }
+
         HttpResponse response = null;
 
         try {
-            response = httpClient.execute(httpget, localContext);
+            response = httpClient.execute(httpget);
         } catch (ClientProtocolException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -148,6 +130,19 @@ public class HttpClientHelper
 
         return response;
     }
+
+    public void setCookie(String cookie, Context context)
+    {
+        context.getSharedPreferences(
+                this.getClass().getPackage().getName(), Activity.MODE_PRIVATE)
+            .edit()
+            .putString(".cookie", cookie)
+            .commit();
+
+        this.cookie = cookie;
+    }
+
+    public DefaultHttpClient getHttpClient() { return httpClient; }
 
     public String getURI()
     {

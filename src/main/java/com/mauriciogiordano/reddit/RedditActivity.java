@@ -17,7 +17,7 @@ public class RedditActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reddit);
 
-        User.signIn("mauriciogior", "6uwgqj9w", new User.OnLoginListener()
+        User.signIn("mauriciogior", "6uwgqj9w", getApplicationContext(), new User.OnLoginListener()
         {
             @Override
             public void onLogin(User user, Network.Status status, boolean err)
@@ -29,7 +29,6 @@ public class RedditActivity extends Activity {
             }
         });
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
